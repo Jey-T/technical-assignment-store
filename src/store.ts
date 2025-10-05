@@ -37,16 +37,14 @@ export class Store implements IStore {
 
   private _storeData: Record<string, JSONObject> = {}
 
+  private getPermission = (key: string): Permission => (this.constructor as any)[PERMISSIONS_KEY]?.[key] || this.defaultPolicy
+
   allowedToRead(key: string): boolean {
-    const storeConstructor: any = this.constructor
-    const permission = (storeConstructor[PERMISSIONS_KEY]?.[key]) || this.defaultPolicy
-    return permission.includes("r")
+    return this.getPermission(key).includes("r")
   }
 
   allowedToWrite(key: string): boolean {
-    const storeConstructor: any = this.constructor
-    const permission = (storeConstructor[PERMISSIONS_KEY]?.[key]) || this.defaultPolicy
-    return permission.includes("w")
+    return this.getPermission(key).includes("w")
   }
 
   read(path: string): StoreResult {
