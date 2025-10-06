@@ -2,26 +2,28 @@ import { JSONObject } from "./types/json-types";
 import { Permission } from "./types/permission-types";
 import { IStore, StoreResult, StoreValue } from "./types/store-types";
 import { INTERNAL_METHODS_KEY, PERMISSIONS_KEY } from "./utils/consts";
-import { InternalMethod } from "./utils/decorators";
+import { Internal } from "./utils/decorators";
 
 export class Store implements IStore {
+  @Internal()
   defaultPolicy: Permission = "rw";
 
+  @Internal()
   private _storeData: Record<string, JSONObject> = {}
 
-  @InternalMethod()
+  @Internal()
   private getPermission = (key: string) => (this.constructor as any)[PERMISSIONS_KEY]?.[key] || this.defaultPolicy
 
-  @InternalMethod()
+  @Internal()
   allowedToRead = (key: string): boolean => this.getPermission(key).includes("r")
 
-  @InternalMethod()
+  @Internal()
   allowedToWrite = (key: string): boolean => this.getPermission(key).includes("w")
 
-  @InternalMethod()
+  @Internal()
   isInternalMethod = (key: string): boolean => (this.constructor as any)[INTERNAL_METHODS_KEY]?.has(key) || false
 
-  @InternalMethod()
+  @Internal()
   read = (path: string): StoreResult => {
     const keys = path.split(":")
     let current: any = this
@@ -50,7 +52,7 @@ export class Store implements IStore {
     return current
   }
 
-  @InternalMethod()
+  @Internal()
   write = (path: string, value: StoreValue): StoreValue => {
     const keys = path.split(":")
     let current: any = this
@@ -102,7 +104,7 @@ export class Store implements IStore {
     return value
   }
 
-  @InternalMethod()
+  @Internal()
   writeEntries = (entries: JSONObject): void => {
     function writeEntriesRecursive(entries: JSONObject, current: any) {
       for (const [key, value] of Object.entries(entries)) {
@@ -125,7 +127,7 @@ export class Store implements IStore {
     writeEntriesRecursive(entries, this)
   }
 
-  @InternalMethod()
+  @Internal()
   entries = (): JSONObject => {
     const result: JSONObject = {};
     for (const [key, val] of Object.entries(this)) {
