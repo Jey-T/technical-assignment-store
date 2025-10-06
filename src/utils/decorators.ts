@@ -11,7 +11,7 @@ export function Restrict(policy: Permission = "none"): any {
     }
 }
 
-export function InternalMethod() {
+export function Internal() {
     return (target: any, propertyKey: string) => {
         const storeConstructor = target.constructor;
         if (!storeConstructor.hasOwnProperty(INTERNAL_METHODS_KEY)) {
