@@ -1,5 +1,6 @@
-import { lazy } from "./lazy";
-import { Restrict, Store } from "./store";
+import { lazy } from "./utils/lazy";
+import { Store } from "./store";
+import { Restrict } from "./utils/decorators";
 import { UserStore } from "./userStore";
 
 
