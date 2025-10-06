@@ -1,55 +1,30 @@
-import { JSONArray, JSONObject, JSONPrimitive } from "./json-types";
-
-export type Permission = "r" | "w" | "rw" | "none";
-
-export type StoreResult = Store | JSONPrimitive | undefined;
-
-export type StoreValue =
-  | JSONObject
-  | JSONArray
-  | StoreResult
-  | (() => StoreResult);
-
-export interface IStore {
-  defaultPolicy: Permission;
-  allowedToRead(key: string): boolean;
-  allowedToWrite(key: string): boolean;
-  read(path: string): StoreResult;
-  write(path: string, value: StoreValue): StoreValue;
-  writeEntries(entries: JSONObject): void;
-  entries(): JSONObject;
-}
-
-const PERMISSIONS_KEY = Symbol("store-permissions-key");
-
-export function Restrict(policy: Permission = "none"): any {
-  return (target: any, propertyKey: string) => {
-    const storeConstructor = target.constructor;
-    if (!storeConstructor.hasOwnProperty(PERMISSIONS_KEY)) {
-      storeConstructor[PERMISSIONS_KEY] = {}
-    }
-    storeConstructor[PERMISSIONS_KEY][propertyKey] = policy
-  }
-}
+import { JSONObject } from "./types/json-types";
+import { Permission } from "./types/permission-types";
+import { IStore, StoreResult, StoreValue } from "./types/store-types";
+import { INTERNAL_METHODS_KEY, PERMISSIONS_KEY } from "./utils/consts";
+import { Internal } from "./utils/decorators";
 
 export class Store implements IStore {
+  @Internal()
   defaultPolicy: Permission = "rw";
 
+  @Internal()
   private _storeData: Record<string, JSONObject> = {}
 
-  allowedToRead(key: string): boolean {
-    const storeConstructor: any = this.constructor
-    const permission = (storeConstructor[PERMISSIONS_KEY]?.[key]) || this.defaultPolicy
-    return permission.includes("r")
-  }
+  @Internal()
+  private getPermission = (key: string) => (this.constructor as any)[PERMISSIONS_KEY]?.[key] || this.defaultPolicy
 
-  allowedToWrite(key: string): boolean {
-    const storeConstructor: any = this.constructor
-    const permission = (storeConstructor[PERMISSIONS_KEY]?.[key]) || this.defaultPolicy
-    return permission.includes("w")
-  }
+  @Internal()
+  allowedToRead = (key: string): boolean => this.getPermission(key).includes("r")
 
-  read(path: string): StoreResult {
+  @Internal()
+  allowedToWrite = (key: string): boolean => this.getPermission(key).includes("w")
+
+  @Internal()
+  isInternalMethod = (key: string): boolean => (this.constructor as any)[INTERNAL_METHODS_KEY]?.has(key) || false
+
+  @Internal()
+  read = (path: string): StoreResult => {
     const keys = path.split(":")
     let current: any = this
     let store: any = this
@@ -77,7 +52,8 @@ export class Store implements IStore {
     return current
   }
 
-  write(path: string, value: StoreValue): StoreValue {
+  @Internal()
+  write = (path: string, value: StoreValue): StoreValue => {
     const keys = path.split(":")
     let current: any = this
     let store: any = this
@@ -128,8 +104,8 @@ export class Store implements IStore {
     return value
   }
 
-
-  writeEntries(entries: JSONObject): void {
+  @Internal()
+  writeEntries = (entries: JSONObject): void => {
     function writeEntriesRecursive(entries: JSONObject, current: any) {
       for (const [key, value] of Object.entries(entries)) {
         //if value is an object, create a new store and write the object inside it
@@ -151,10 +127,11 @@ export class Store implements IStore {
     writeEntriesRecursive(entries, this)
   }
 
-  entries(): JSONObject {
+  @Internal()
+  entries = (): JSONObject => {
     const result: JSONObject = {};
     for (const [key, val] of Object.entries(this)) {
-      if (this.allowedToRead(key)) {
+      if (this.allowedToRead(key) && !this.isInternalMethod(key)) {
         result[key] = typeof val === "function" ? val() : val;
       }
     }
